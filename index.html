@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FieldOps — Gestão Integrada de Equipes Externas</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            primary: '#0052CC',
+            'primary-dark': '#0747A6',
+            'bg-light': '#F4F5F7',
+            'bg-dark': '#0F172A',
+            'card-dark': '#1E293B',
+          },
+          fontFamily: {
+            sans: ['Inter', 'sans-serif']
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+    .icon-fill { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    canvas { touch-action: none; }
+  </style>
+</head>
+<body class="bg-bg-light dark:bg-bg-dark text-slate-900 dark:text-slate-100 antialiased transition-colors duration-200">
+
+  <!-- CONTAINER DE NOTIFICAÇÕES (TOASTS) -->
+  <div id="toast-container" class="fixed top-4 right-4 z-50 space-y-2 pointer-events-none"></div>
+
+  <!-- INPUT OCULTO PARA UPLOAD REAL DE FOTO EM CAMPO -->
+  <input type="file" id="real-photo-input" accept="image/*" class="hidden" onchange="handleRealPhotoUpload(event)" />
+
+  <div class="flex h-screen overflow-hidden">
+    
+    <!-- SIDEBAR (Desktop) -->
+    <aside class="hidden lg:flex lg:flex-col lg:w-64 bg-white dark:bg-card-dark border-r border-slate-200 dark:border-slate-800 shrink-0 z-30">
+      <div class="flex items-center gap-3 px-6 h-16 border-b border-slate-200 dark:border-slate-800">
+        <div class="relative flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-[#0052CC] to-[#0747A6] text-white shadow-md">
+          <span class="material-symbols-outlined icon-fill text-xl">engineering</span>
+          <span class="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-emerald-500 border-2 border-white dark:border-card-dark rounded-full"></span>
+        </div>
+        <div>
+          <span class="text-lg font-bold tracking-tight text-slate-900 dark:text-white">Field<span class="text-primary dark:text-blue-400">Ops</span></span>
+          <span class="block text-[10px] font-semibold uppercase tracking-wider text-slate-400">FSM Suite Integrado</span>
+        </div>
+      </div>
+
+      <nav class="flex-1 px-3 py-4 space-y-1.5 overflow-y-auto">
+        <button onclick="switchTab('dashboard')" id="nav-dashboard" class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-semibold bg-primary/10 text-primary dark:bg-primary/20 dark:text-blue-400 transition">
+          <div class="flex items-center gap-3">
+            <span class="material-symbols-outlined icon-fill">dashboard</span>
+            Visão Geral de Campo
+          </div>
+          <span id="badge-alerts-nav" class="bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 text-xs font-bold px-2 py-0.5 rounded-full">2</span>
+        </button>
+
+        <button onclick="switchTab('orders')" id="nav-orders" class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+          <div class="flex items-center gap-3">
+            <span class="material-symbols-outlined">assignment</span>
+            Roteirização e OS
+          </div>
+          <span id="badge-pending-os" class="bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 text-xs font-bold px-2 py-0.5 rounded-full">0</span>
+        </button>
+
+        <button onclick="switchTab('execution')" id="nav-execution" class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+          <div class="flex items-center gap-3">
+            <span class="material-symbols-outlined">handyman</span>
+            Execução em Campo
+          </div>
+          <span id="badge-active-os" class="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300">#OS-2049</span>
+        </button>
+
+        <button onclick="switchTab('reports')" id="nav-reports" class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+          <div class="flex items-center gap-3">
+            <span class="material-symbols-outlined">analytics</span>
+            Relatórios e Equipe
+          </div>
+        </button>
+      </nav>
+
+      <!-- Ações Rápidas de Sistema -->
+      <div class="px-3 py-3 border-t border-slate-200 dark:border-slate-800 space-y-1.5">
+        <button onclick="exportFullCSV()" class="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition">
+          <span class="material-symbols-outlined text-base">download</span> Exportar Relatório CSV
+        </button>
+        <button onclick="resetDemoData()" class="w-full flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg text-[11px] font-medium text-slate-400 hover:text-red-500 transition">
+          <span class="material-symbols-outlined text-sm">restart_alt</span> Restaurar Dados de Fábrica
+        </button>
+      </div>
+
+      <!-- Perfil do Gestor -->
+      <div class="p-4 border-t border-slate-200 dark:border-slate-800">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-full bg-primary/10 dark:bg-primary/20 text-primary dark:text-blue-400 flex items-center justify-center font-bold">
+            RM
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-semibold text-slate-900 dark:text-white truncate">Ricardo Mendes</p>
+            <p class="text-xs text-slate-500 dark:text-slate-400 truncate">Supervisor de Operações</p>
+          </div>
+          <span class="w-2.5 h-2.5 bg-emerald-500 rounded-full" title="Online"></span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ÁREA PRINCIPAL -->
+    <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+      
+      <!-- TOP HEADER -->
+      <header class="h-16 bg-white dark:bg-card-dark border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 lg:px-8 shrink-0 z-20">
+        <div class="flex items-center gap-3">
+          <div class="lg:hidden flex items-center justify-center w-9 h-9 rounded-lg bg-primary text-white">
+            <span class="material-symbols-outlined text-lg">engineering</span>
+          </div>
+          <div>
+            <h1 id="page-title" class="text-base lg:text-lg font-bold text-slate-900 dark:text-white">Visão Geral de Campo</h1>
+            <p id="page-subtitle" class="text-xs text-slate-500 dark:text-slate-400 hidden sm:block">Monitoramento operacional integrado em tempo real</p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2 sm:gap-3">
+          <button onclick="openDispatchModal()" class="flex items-center gap-1.5 bg-primary hover:bg-primary-dark text-white text-xs sm:text-sm font-semibold px-3.5 py-2 rounded-lg shadow-sm transition">
+            <span class="material-symbols-outlined text-lg">add_circle</span>
+            <span>Nova / Despachar OS</span>
+          </button>
+
+          <button onclick="exportFullCSV()" class="lg:hidden p-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700" title="Exportar CSV">
+            <span class="material-symbols-outlined text-xl">download</span>
+          </button>
+
+          <button onclick="toggleTheme()" class="p-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition" title="Alternar Tema Claro/Escuro">
+            <span id="theme-icon" class="material-symbols-outlined text-xl">dark_mode</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- CONTEÚDO DAS ABAS -->
+      <main class="flex-1 overflow-y-auto p-4 lg:p-6 pb-24 lg:pb-8 space-y-6">
+
+        <!-- =======================================================
+             ABA 1: DASHBOARD DO GESTOR / VISÃO GERAL DE CAMPO
+             ======================================================= -->
+        <section id="view-dashboard" class="space-y-6">
+          
+          <!-- Cards de Indicadores Chave (Clicáveis e Integrados) -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+            <div onclick="switchTab('reports')" class="cursor-pointer bg-white dark:bg-card-dark p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm hover:border-primary transition">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Taxa de SLA do Dia</span>
+                <span class="p-2 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 material-symbols-outlined">verified</span>
+              </div>
+              <div class="mt-3 flex items-baseline justify-between">
+                <h3 id="kpi-sla" class="text-3xl font-bold text-slate-900 dark:text-white">94.2%</h3>
+                <span class="text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center">
+                  <span class="material-symbols-outlined text-sm">trending_up</span> Meta: 92%
+                </span>
+              </div>
+              <div class="mt-3 w-full h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                <div id="kpi-sla-bar" class="bg-emerald-500 h-full rounded-full transition-all duration-300" style="width: 94.2%"></div>
+              </div>
+            </div>
+
+            <div onclick="navigateToOrdersFilter('pendente')" class="cursor-pointer bg-white dark:bg-card-dark p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm hover:border-primary transition">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Ordens Ativas / Pendentes</span>
+                <span class="p-2 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 material-symbols-outlined">pending_actions</span>
+              </div>
+              <div class="mt-3 flex items-baseline justify-between">
+                <h3 id="kpi-pending" class="text-3xl font-bold text-slate-900 dark:text-white">0</h3>
+                <span id="kpi-critical-count" class="text-xs font-semibold text-red-600 dark:text-red-400">0 Críticas</span>
+              </div>
+              <p class="mt-3 text-xs text-primary dark:text-blue-400 font-medium">Clique para filtrar pendentes →</p>
+            </div>
+
+            <div onclick="navigateToOrdersFilter('concluida')" class="cursor-pointer bg-white dark:bg-card-dark p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm hover:border-primary transition">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Ordens Concluídas Hoje</span>
+                <span class="p-2 rounded-lg bg-primary/10 text-primary dark:text-blue-400 material-symbols-outlined">task_alt</span>
+              </div>
+              <div class="mt-3 flex items-baseline justify-between">
+                <h3 id="kpi-completed" class="text-3xl font-bold text-slate-900 dark:text-white">48</h3>
+                <span class="text-xs font-semibold text-emerald-600 dark:text-emerald-400">Meta diária: 60</span>
+              </div>
+              <div class="mt-3 w-full h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                <div id="kpi-completed-bar" class="bg-primary h-full rounded-full transition-all duration-300" style="width: 80%"></div>
+              </div>
+            </div>
+
+            <div onclick="setTechStatusFilter('all')" class="cursor-pointer bg-white dark:bg-card-dark p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm hover:border-primary transition">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Efetivo em Campo</span>
+                <span class="p-2 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 material-symbols-outlined">groups</span>
+              </div>
+              <div class="mt-3 flex items-baseline justify-between">
+                <h3 id="kpi-active-techs" class="text-3xl font-bold text-slate-900 dark:text-white">5/6</h3>
+                <span class="text-xs font-semibold text-emerald-600 dark:text-emerald-400">Online agora</span>
+              </div>
+              <p id="kpi-tech-breakdown" class="mt-3 text-xs text-slate-500 dark:text-slate-400 truncate">--</p>
+            </div>
+          </div>
+
+          <!-- Painel Principal: Colaboradores em Tempo Real + Alertas Rápidos -->
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <!-- Status em Tempo Real dos Colaboradores Externos (2 Colunas) -->
+            <div class="lg:col-span-2 bg-white dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col">
+              <div class="p-4 border-b border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h2 class="font-bold text-slate-900 dark:text-white text-sm flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary dark:text-blue-400">badge</span>
+                    Status em Tempo Real dos Colaboradores Externos
+                  </h2>
+                  <p class="text-xs text-slate-500">Altere o status, abra a OS ativa do técnico ou filtre a agenda dele</p>
+                </div>
+                <input type="text" id="tech-search" oninput="renderDashboardTechs()" placeholder="Buscar técnico, equipe ou região..." class="text-xs rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white focus:border-primary focus:ring-primary sm:w-56" />
+              </div>
+
+              <!-- Botões de Filtro de Status -->
+              <div class="px-4 py-2.5 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2 overflow-x-auto no-scrollbar">
+                <button onclick="setTechStatusFilter('all')" id="tfilter-all" class="px-3 py-1 rounded-md text-xs font-bold bg-primary text-white">Todos</button>
+                <button onclick="setTechStatusFilter('atendimento')" id="tfilter-atendimento" class="px-3 py-1 rounded-md text-xs font-semibold bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">Em Atendimento</button>
+                <button onclick="setTechStatusFilter('rota')" id="tfilter-rota" class="px-3 py-1 rounded-md text-xs font-semibold bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">Em Rota</button>
+                <button onclick="setTechStatusFilter('ocioso')" id="tfilter-ocioso" class="px-3 py-1 rounded-md text-xs font-semibold bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">Ocioso</button>
+                <button onclick="setTechStatusFilter('offline')" id="tfilter-offline" class="px-3 py-1 rounded-md text-xs font-semibold bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">Offline</button>
+              </div>
+
+              <div id="dashboard-tech-list" class="divide-y divide-slate-100 dark:divide-slate-800"></div>
+            </div>
+
+            <!-- Alertas Rápidos de Atrasos ou Chamados Emergenciais (1 Coluna) -->
+            <div class="bg-white dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col">
+              <div class="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span class="material-symbols-outlined text-red-500 icon-fill">notifications_active</span>
+                  <h2 class="font-bold text-slate-900 dark:text-white text-sm">Alertas e Emergências</h2>
+                </div>
+                <span id="alert-count-badge" class="px-2 py-0.5 text-xs font-bold rounded-full bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300">2 Ativos</span>
+              </div>
+
+              <div id="alerts-list" class="p-4 space-y-3 flex-1 overflow-y-auto"></div>
+
+              <div class="p-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40">
+                <button onclick="createSimulatedAlert()" class="w-full py-2 rounded-lg border border-dashed border-slate-300 dark:border-slate-700 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:border-primary hover:text-primary transition flex items-center justify-center gap-1.5">
+                  <span class="material-symbols-outlined text-base">bolt</span> Simular Novo Chamado Emergencial
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- =======================================================
+             ABA 2: ROTEIRIZAÇÃO E ORDENS DE SERVIÇO (AGENDA/OS)
+             ======================================================= -->
+        <section id="view-orders" class="hidden space-y-6">
+          
+          <!-- Barra de Filtros, Técnico e Busca -->
+          <div class="bg-white dark:bg-card-dark p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-4">
+            <div class="flex items-center gap-2 overflow-x-auto no-scrollbar">
+              <button onclick="setOrderFilter('all')" id="ofilter-all" class="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-primary text-white">Todas</button>
+              <button onclick="setOrderFilter('critica')" id="ofilter-critica" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">Críticas / Emergência</button>
+              <button onclick="setOrderFilter('pendente')" id="ofilter-pendente" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">Sem Atribuição</button>
+              <button onclick="setOrderFilter('atendimento')" id="ofilter-atendimento" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">Em Rota / Execução</button>
+              <button onclick="setOrderFilter('concluida')" id="ofilter-concluida" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">Concluídas</button>
+            </div>
+
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+    
